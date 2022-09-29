@@ -1,0 +1,48 @@
+struct Triangle
+{
+    vec2 A;
+    vec2 B;
+    vec2 C;
+};
+
+float triangleArea(vec2 a, vec2 b, vec2 c)
+{
+    return abs((a.x*(b.y-c.y) + b.x*(c.y-a.y) + c.x*(a.y-b.y))/2.0);
+}
+
+bool isInTriangle(vec2 point, Triangle tr)
+{
+    float Area = triangleArea(tr.A, tr.B, tr.C);//original triangle
+    float AreaP1 = triangleArea(point, tr.B, tr.C);
+    float AreaP2 = triangleArea(tr.A, point, tr.C);
+    float AreaP3 = triangleArea(tr.A, tr.B, point);
+    
+    if(Area == AreaP1 + AreaP2 + AreaP3)
+        return true;
+    else
+        return false;
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    // Normalized pixel coordinates (from 0 to 1)
+    vec2 uv = fragCoord/iResolution.xy;
+    
+    float displacement = 0.2 * cos(iTime);
+    
+    Triangle tr;
+    tr.A = vec2(0.5 + displacement, 0.8);
+    tr.B = vec2(0.2 + displacement, 0.2);
+    tr.C = vec2(0.8 + displacement, 0.2);
+    
+    vec3 col = vec3(0.0);
+    
+    if(isInTriangle(uv, tr))
+    {
+        // Time varying pixel color
+        col = 0.5 + 0.5*cos(iTime + uv.xyx + vec3(0,2,4));
+    }
+
+    // Output to screen
+    fragColor = vec4(col,1.0);
+}
