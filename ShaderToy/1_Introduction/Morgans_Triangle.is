@@ -1,0 +1,87 @@
+const float PI = 3.1415926535897932384626433832795;
+
+struct Triangle
+{
+    vec2 Points[3];
+};
+
+// Checks whether a uv is to the right of a line
+// based on two vec2 values
+bool isPastLine(vec2 uv, vec2 lStart, vec2 lEnd)
+{
+    float yDiff = uv.y - lStart.y;
+    float yRange = lEnd.y - lStart.y;
+    float dispScaled = yDiff / yRange;
+    float xRange = lEnd.x - lStart.x;
+    float xChk = lStart.x + (xRange * dispScaled);
+    return uv.x > xChk;
+}
+
+// Checks whether a point is within a triangle by checking
+// how many lines each uv is to the right of
+// Based on the core principles here:
+// https://www.eecs.umich.edu/courses/eecs380/HANDOUTS/PROJ2/InsidePoly.html
+bool isInTriangle(vec2 uv, Triangle tr)
+{
+    int count = 0;
+    
+    if (uv.y > tr.Points[0].y && uv.y < tr.Points[1].y || uv.y < tr.Points[0].y && uv.y > tr.Points[1].y)
+    {
+        if (isPastLine(uv, tr.Points[0], tr.Points[1]))
+        {
+            count++;
+        }
+    }
+    
+    if (uv.y > tr.Points[0].y && uv.y < tr.Points[2].y || uv.y < tr.Points[0].y && uv.y > tr.Points[2].y)
+    {
+        if (isPastLine(uv, tr.Points[0], tr.Points[2]))
+        {
+            count++;
+        }
+    }
+    
+    if (uv.y > tr.Points[1].y && uv.y < tr.Points[2].y || uv.y < tr.Points[1].y && uv.y > tr.Points[2].y)
+    {
+        if (isPastLine(uv, tr.Points[1], tr.Points[2]))
+        {
+            count++;
+        }
+    }
+    
+    return (count % 2) == 1;
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    // Normalized pixel coordinates (from 0 to 1)
+    vec2 uv = fragCoord/iResolution.xy;
+    
+    // Circle trace properties
+    vec2 centre = vec2(0.5, 0.5);
+    float rad = 0.3;
+    float rotSpeed = 10.0;
+    
+    // Intermediate calculations
+    float rootRad = pow(rad/2.0, 0.5);
+    float angle1 = (iTime * rotSpeed) * PI / 180.0;
+    float angle2 = ((iTime * rotSpeed) + 120.0) * PI / 180.0;
+    float angle3 = ((iTime * rotSpeed) + 240.0) * PI / 180.0;
+    float wComp = iResolution.y / iResolution.x;
+    
+    // Triangle to draw
+    Triangle tr;
+    tr.Points[0] = vec2(centre.x + (rootRad * sin(angle1) * wComp), centre.x + (rootRad * cos(angle1)));
+    tr.Points[1] = vec2(centre.x + (rootRad * sin(angle2) * wComp), centre.x + (rootRad * cos(angle2)));
+    tr.Points[2] = vec2(centre.x + (rootRad * sin(angle3) * wComp), centre.x + (rootRad * cos(angle3)));
+
+    // Time isInTriangle pixel color
+    vec3 col = vec3(0.0);
+    if (isInTriangle(uv, tr))
+    {
+        col = 0.5 + 0.5*cos(iTime+uv.xyx+vec3(0,2,4));
+    }
+
+    // Output to screen
+    fragColor = vec4(col,1.0);
+}
