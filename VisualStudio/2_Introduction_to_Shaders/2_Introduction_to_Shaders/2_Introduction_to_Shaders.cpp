@@ -18,7 +18,7 @@ unsigned int SCREEN_HEIGHT = 1024;
 const char* vertexShaderSource = "#version 330 core\n"
 "layout(location = 0) in vec3 position;\n"
 "out vec4 vertexColor;\n"
-"uniform vec3 displacement = vec3(0.0);\n"
+"uniform vec3 displacement;\n"
 "void main()\n"
 "{\n"
 "	vec3 finalPosition = position + displacement;\n"
@@ -34,6 +34,11 @@ const char* fragmentShaderSource = "#version 330 core\n"
 "	FragColor = vertexColor;\n"
 "}\0";
 //-----------
+
+//Global utility variables
+float displacement_x = 0.0f;
+float displacement_y = 0.0f;
+//------------------------
 
 int main()
 {
@@ -77,12 +82,70 @@ int main()
     //Checking for shader compilation errors
     int success;
     char infoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        cout << "COMPILATION ERROR --- VERTEX SHADER" << endl << infoLog << endl;
+    }
     //-------------
+    
+    //Fragment shader
+    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    //Checking for shader compilation errors
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        cout << "COMPILATION ERROR --- FRAGMENT SHADER" << endl << infoLog << endl;
+    }
+    //---------------
+
+    //Linking shaders into a program
+    unsigned int shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    //Checking for program linking errors
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        cout << "LINKING ERROR --- SHADER PROGRAM" << endl << infoLog << endl;
+    }
+    //------------------------------
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
 
     //----------------------------
 
     //Geometry loading
-    // TODO
+    float vertices[] = {
+        -0.5f, -0.5f, 0.0f, // left
+         0.5f, -0.5f, 0.0f, // right
+         0.0f,  0.5f, 0.0f  // top
+    };
+
+    unsigned int VBO, VAO;
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0); //both first arguments (0's here) are the location values for the corresponding vertex shader input
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
     //----------------
 
     //Texture loading
@@ -102,7 +165,15 @@ int main()
         //--------------------
 
         //Geometry rendering
-        // TODO
+        glUseProgram(shaderProgram); //Tell opengl which shader to use for rendering [HOW TO DRAW]
+
+        int dispVarLocation = glGetUniformLocation(shaderProgram, "displacement");
+        glUniform3f(dispVarLocation, displacement_x, displacement_y, 0.0);
+        //Orbitting functionality
+        //glUniform3f(dispVarLocation, cos(glfwGetTime()), sin(glfwGetTime()), 0.0);
+
+        glBindVertexArray(VAO); //[WHAT TO DRAW]
+        glDrawArrays(GL_TRIANGLES, 0, 3);
         //------------------
 
         //Buffer swapping
@@ -130,6 +201,18 @@ void processKeyboardInput(GLFWwindow* window)
     {
         glfwSetWindowShouldClose(window, true);
     }
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        displacement_y += 0.01f;
+
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        displacement_y -= 0.01f;
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        displacement_x += 0.01f;
+
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        displacement_x -= 0.01f;
 }
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
