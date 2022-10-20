@@ -14,6 +14,27 @@ unsigned int SCREEN_WIDTH = 1280;
 unsigned int SCREEN_HEIGHT = 1024;
 //--------
 
+//Shader Code
+const char* vertexShaderSource = "#version 330 core\n"
+"layout(location = 0) in vec3 position;\n"
+"out vec4 vertexColor;\n"
+"uniform vec3 displacement = vec3(0.0);\n"
+"void main()\n"
+"{\n"
+"	vec3 finalPosition = position + displacement;\n"
+"	gl_Position = vec4(finalPosition, 1.0);\n"
+"	vertexColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
+"}\0";
+
+const char* fragmentShaderSource = "#version 330 core\n"
+"out vec4 FragColor;\n"
+"in vec4 vertexColor;\n"
+"void main()\n"
+"{\n"
+"	FragColor = vertexColor;\n"
+"}\0";
+//-----------
+
 int main()
 {
     //Initialise and configure GLFW
@@ -24,7 +45,7 @@ int main()
     //-----------------------------
 
     //GLFW Window creation
-    GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "GPR5300 2022 - Intro to OpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "GPR5300 2022 - Intro to Shaders", NULL, NULL);
     if (window == NULL)
     {
         cout << "Failed to create GLFW window!!!" << endl;
@@ -47,7 +68,17 @@ int main()
     //----------------------------------------
 
     //Shader loading and compiling
-    // TODO
+    
+    //Vertex shader
+    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    //Checking for shader compilation errors
+    int success;
+    char infoLog[512];
+    //-------------
+
     //----------------------------
 
     //Geometry loading
