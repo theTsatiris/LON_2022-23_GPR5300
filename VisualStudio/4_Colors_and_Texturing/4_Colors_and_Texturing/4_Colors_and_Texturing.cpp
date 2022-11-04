@@ -1,9 +1,13 @@
+#define STB_IMAGE_IMPLEMENTATION
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <stb_image.h>
 
 #include <iostream>
 
@@ -27,6 +31,7 @@ float deltaTime = 0.0f;
 float lastFrameTime = 0.0f;
 
 float movementSpeed = 1.0f;
+float rotationAngle = 0.0f;
 //------------------------
 
 int main()
@@ -97,14 +102,41 @@ int main()
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    //TODO vertex attribute for texture coordinates
+    //vertex attribute which initialises the texCoord variable in the vertex shader (location 2)
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     //----------------
 
     //Texture loading
-    // TODO
+    unsigned int texture1;
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+
+    //Texture wrapping configuration
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    //Texture filtering configuration
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    std::string imagePath = "textures/RTS_Crate.jpg";
+
+    int width, height, numOfChannels;
+    unsigned char* data = stbi_load(imagePath.c_str(), &width, &height, &numOfChannels, 0);
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    }
+    else
+    {
+        cout << "FAILED TO LOAD TEXTURE FILE " << imagePath << "!!!" << endl;
+    }
+    stbi_image_free(data);
+
     //---------------
 
     //MAIN RENDERING LOOP
@@ -113,7 +145,7 @@ int main()
         //deltaTime calculation
         float currentFrameTime = glfwGetTime();
         deltaTime = currentFrameTime - lastFrameTime;
-        cout << "DeltaTime = " << deltaTime << endl;
+        //cout << "DeltaTime = " << deltaTime << endl;
         lastFrameTime = currentFrameTime;
 
         //Handling keyboard input
@@ -128,6 +160,9 @@ int main()
         //Geometry rendering
         mySimpleShader.use(); //Tell opengl which shader to use for rendering [HOW TO DRAW]
 
+        //Initialise texture sampler uniform
+        mySimpleShader.setInt("textureObject", 0);
+
         //mySimpleShader.setVec3("displacement", displacement_x, displacement_y, 0.0);
         
         //Orbitting functionality
@@ -139,7 +174,7 @@ int main()
 
         //Simple model matrix which performs a translation and a rotation
         model = glm::translate(model, displacement);
-        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0, 1.0, 0.0));
+        model = glm::rotate(model, rotationAngle, glm::vec3(0.0, 1.0, 0.0));
 
         projection = glm::perspective(glm::radians(45.0f), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
 
@@ -202,6 +237,12 @@ void processKeyboardInput(GLFWwindow* window)
         displacement.z -= movementSpeed * deltaTime;
         //cout << "Triangle Z = " << displacement.z << endl;
     }
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        rotationAngle -= movementSpeed * deltaTime;
+
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        rotationAngle += movementSpeed * deltaTime;
 }
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
