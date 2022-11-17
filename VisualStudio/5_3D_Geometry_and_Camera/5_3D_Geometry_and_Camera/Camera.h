@@ -29,7 +29,8 @@ public:
 	//Camera parameters
 	float pitch;
 	float yaw;
-	float speed;
+	float movementSpeed;
+	float rotationSpeed;
 	float fov;
 
 	Camera(glm::vec3 startingPosition, glm::vec3 startingFront)
@@ -39,7 +40,8 @@ public:
 
 		pitch = 0.0f;
 		yaw = -90.0f;
-		speed = 1.0f;
+		movementSpeed = 2.0f;
+		rotationSpeed = 0.2f;
 		fov = 45.0f; //fov == zoom
 
 		UpdateCameraVectors();
@@ -52,7 +54,7 @@ public:
 
 	void ProcessKeyboard(CameraMovement direction, float deltaTime)
 	{
-		float finalSpeed = speed * deltaTime;
+		float finalSpeed = movementSpeed * deltaTime;
 		
 		if (direction == FORWARD)
 			position += forward * finalSpeed;
@@ -72,8 +74,14 @@ public:
 
 	void ProcessMouseInput(float xOffset, float yOffset, float deltaTime)
 	{
-		yaw += xOffset * deltaTime;
-		pitch -= yOffset * deltaTime;
+		float finalSpeed = rotationSpeed * deltaTime;
+
+		yaw += xOffset * rotationSpeed;
+		pitch -= yOffset * rotationSpeed;
+		if (pitch < -90.0f)
+			pitch = -90.0f;
+		if (pitch > 90.0f)
+			pitch = 90.0f;
 
 		UpdateCameraVectors();
 	}
@@ -81,6 +89,10 @@ public:
 	void ProcessMouseScroll(float offset)
 	{
 		fov -= offset;
+		if (fov < 1.0f)
+			fov = 1.0f;
+		if (fov > 90.0f)
+			fov = 90.0f;
 	}
 
 private:

@@ -16,10 +16,16 @@
 
 using namespace std;
 
-//Callbacks and other function
+//Callbacks
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
+void mouseCallback(GLFWwindow* window, double xPos, double yPos);
+void scrollingCallback(GLFWwindow* window, double xOffset, double yOffset);
+//----------------------------
+
+//Other functions
 void processKeyboardInput(GLFWwindow* window);
 unsigned int loadTexture(const char* path, bool flipVertically);
+//---------------
 
 //Settings
 unsigned int SCREEN_WIDTH = 1280;
@@ -34,6 +40,10 @@ float lastFrameTime = 0.0f;
 
 float movementSpeed = 1.0f;
 float rotationAngle = 0.0f;
+
+float lastX = 0.0f;
+float lastY = 0.0f;
+bool isFirstFrame = true;
 //------------------------
 
 //Camera declaration
@@ -61,7 +71,13 @@ int main()
     
     //Register callbacks
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-    //--------------------
+    glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetScrollCallback(window, scrollingCallback);
+    //-------------------
+
+    //Cursor grabbing setting
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //-----------------------
 
     //Load OpenGL function pointers using GLAD
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -275,6 +291,29 @@ void processKeyboardInput(GLFWwindow* window)
 
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
         rotationAngle += movementSpeed * deltaTime;
+}
+
+void mouseCallback(GLFWwindow* window, double xPos, double yPos)
+{
+    if (isFirstFrame)
+    {
+        lastX = xPos;
+        lastY = yPos;
+        isFirstFrame = false;
+    }
+
+    float xOffset = xPos - lastX;
+    float yOffset = yPos - lastY;
+
+    lastX = xPos;
+    lastY = yPos;
+
+    myCamera.ProcessMouseInput(xOffset, yOffset, deltaTime);
+}
+
+void scrollingCallback(GLFWwindow* window, double xOffset, double yOffset)
+{
+    myCamera.ProcessMouseScroll((float)yOffset);
 }
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
