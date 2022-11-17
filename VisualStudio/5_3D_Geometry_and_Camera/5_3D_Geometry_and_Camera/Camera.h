@@ -7,6 +7,16 @@
 
 const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
 
+enum CameraMovement
+{
+	FORWARD,
+	BACKWARD,
+	LEFT,
+	RIGHT,
+	UP,
+	DOWN
+};
+
 class Camera
 {
 public:
@@ -38,6 +48,39 @@ public:
 	glm::mat4 GetViewMatrix()
 	{
 		return glm::lookAt(position, position + forward, up);
+	}
+
+	void ProcessKeyboard(CameraMovement direction, float deltaTime)
+	{
+		float finalSpeed = speed * deltaTime;
+		
+		if (direction == FORWARD)
+			position += forward * finalSpeed;
+		if (direction == BACKWARD)
+			position -= forward * finalSpeed;
+
+		if (direction == LEFT)
+			position -= right * finalSpeed;
+		if (direction == RIGHT)
+			position += right * finalSpeed;
+
+		if (direction == UP)
+			position += up * finalSpeed;
+		if (direction == DOWN)
+			position -= up * finalSpeed;
+	}
+
+	void ProcessMouseInput(float xOffset, float yOffset, float deltaTime)
+	{
+		yaw += xOffset * deltaTime;
+		pitch -= yOffset * deltaTime;
+
+		UpdateCameraVectors();
+	}
+
+	void ProcessMouseScroll(float offset)
+	{
+		fov -= offset;
 	}
 
 private:

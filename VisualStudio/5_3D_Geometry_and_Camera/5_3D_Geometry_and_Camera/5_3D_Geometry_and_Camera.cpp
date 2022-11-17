@@ -36,6 +36,10 @@ float movementSpeed = 1.0f;
 float rotationAngle = 0.0f;
 //------------------------
 
+//Camera declaration
+Camera myCamera(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+//------------------
+
 int main()
 {
     //Initialise and configure GLFW
@@ -75,10 +79,6 @@ int main()
     //Shader loading and compiling
     Shader mySimpleShader("shaders/myFirstShader.vs", "shaders/myFirstShader.fs");
     //----------------------------
-
-    //Camera declaration
-    Camera myCamera(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, -1.0f));
-    //------------------
 
     //Geometry loading
     float vertices[] = {
@@ -202,8 +202,6 @@ int main()
         glm::mat4 view = glm::mat4(1.0); //TODO CAMERA
         glm::mat4 projection = glm::mat4(1.0);
 
-        myCamera.position = displacement;
-
         view = myCamera.GetViewMatrix();
         projection = glm::perspective(glm::radians(myCamera.fov), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
 
@@ -255,27 +253,22 @@ void processKeyboardInput(GLFWwindow* window)
     }
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        displacement.y += movementSpeed * deltaTime;
+        myCamera.ProcessKeyboard(FORWARD, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        displacement.y -= movementSpeed * deltaTime;
+        myCamera.ProcessKeyboard(BACKWARD, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        displacement.x += movementSpeed * deltaTime;
+        myCamera.ProcessKeyboard(RIGHT, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        displacement.x -= movementSpeed * deltaTime;
+        myCamera.ProcessKeyboard(LEFT, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-    {
-        displacement.z += movementSpeed * deltaTime;
-        //cout << "Triangle Z = " << displacement.z << endl;
-    }
+        myCamera.ProcessKeyboard(UP, deltaTime);
+     
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-    {
-        displacement.z -= movementSpeed * deltaTime;
-        //cout << "Triangle Z = " << displacement.z << endl;
-    }
+        myCamera.ProcessKeyboard(DOWN, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
         rotationAngle -= movementSpeed * deltaTime;
