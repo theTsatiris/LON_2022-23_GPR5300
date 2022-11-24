@@ -37,6 +37,7 @@ glm::vec3 displacement = glm::vec3(0.0f, 0.0f, 2.0f);
 
 float deltaTime = 0.0f;
 float lastFrameTime = 0.0f;
+int frameCounter = 0;
 
 float movementSpeed = 1.0f;
 float rotationAngle = 0.0f;
@@ -44,6 +45,10 @@ float rotationAngle = 0.0f;
 float lastX = 0.0f;
 float lastY = 0.0f;
 bool isFirstFrame = true;
+
+float shininess = 32.0f;
+bool useBlinnPhong = false;
+bool useMaterial = false;
 //------------------------
 
 //Camera declaration
@@ -196,6 +201,9 @@ int main()
         //cout << "DeltaTime = " << deltaTime << endl;
         lastFrameTime = currentFrameTime;
 
+        if(frameCounter < 2147483647)
+            frameCounter++;
+
         //Handling keyboard input
         processKeyboardInput(window);
         //-----------------------
@@ -212,8 +220,30 @@ int main()
         mySimpleShader.setInt("textureObject1", 0);
         mySimpleShader.setInt("textureObject2", 1);
 
+        //Set material properties
+        mySimpleShader.setBool("useMaterial", useMaterial);
+        if(useMaterial)
+        { 
+            mySimpleShader.setVec3("surfaceMaterial.color", glm::vec3(1.0f));
+            mySimpleShader.setVec3("surfaceMaterial.ambient", glm::vec3(0.0215, 0.1745, 0.0215));
+            mySimpleShader.setVec3("surfaceMaterial.diffuse", glm::vec3(0.07568, 0.61424, 0.07568));
+            mySimpleShader.setVec3("surfaceMaterial.specular", glm::vec3(0.633, 0.727811 ,0.633));
+            mySimpleShader.setFloat("surfaceMaterial.shininess", 0.6 * 128);
+        }
+        else
+        {
+            mySimpleShader.setVec3("surfaceMaterial.ambient", glm::vec3(0.1f));
+            mySimpleShader.setVec3("surfaceMaterial.diffuse", glm::vec3(0.6f));
+            mySimpleShader.setVec3("surfaceMaterial.specular", glm::vec3(0.8f));
+            mySimpleShader.setFloat("surfaceMaterial.shininess", shininess);
+        }
+
+        //Toggle Blinn-Phong
+        mySimpleShader.setBool("useBlinnPhong", useBlinnPhong);
+
         //Initialise Phong model parameters
-        mySimpleShader.setVec3("lightPosition", glm::vec3(glm::sin(glfwGetTime()), glm::cos(glfwGetTime()), 2.0f));
+        //mySimpleShader.setVec3("lightPosition", glm::vec3(glm::sin(glfwGetTime()), glm::cos(glfwGetTime()), 2.0f));
+        mySimpleShader.setVec3("lightPosition", glm::vec3(1.0f, 1.0f, 2.0f));
         mySimpleShader.setVec3("lightColor", glm::vec3(1.0f));
         mySimpleShader.setVec3("viewPosition", myCamera.position);
 
@@ -225,7 +255,7 @@ int main()
         //---------------
 
         glm::mat4 model = glm::mat4(1.0);
-        glm::mat4 view = glm::mat4(1.0); //TODO CAMERA
+        glm::mat4 view = glm::mat4(1.0);
         glm::mat4 projection = glm::mat4(1.0);
 
         view = myCamera.GetViewMatrix();
@@ -301,6 +331,36 @@ void processKeyboardInput(GLFWwindow* window)
 
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
         rotationAngle += movementSpeed * deltaTime;
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    {
+        shininess += 100.0 * deltaTime;
+        cout << shininess << endl;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    {
+        shininess -= 100.0 * deltaTime;
+        cout << shininess << endl;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
+    {
+        if (frameCounter >= 1/deltaTime)
+        {
+            useBlinnPhong = !useBlinnPhong;
+            frameCounter = 0;
+        }
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
+    {
+        if (frameCounter >= 1 / deltaTime)
+        {
+            useMaterial = !useMaterial;
+            frameCounter = 0;
+        }
+    }
 }
 
 void mouseCallback(GLFWwindow* window, double xPos, double yPos)
