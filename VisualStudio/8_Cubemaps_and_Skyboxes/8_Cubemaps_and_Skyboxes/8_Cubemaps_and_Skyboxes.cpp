@@ -291,27 +291,21 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         //--------------------
 
-        //Skybox rendering routine
-        glDepthMask(GL_FALSE); //Disables depth testing (skybox will fail all subsequent depth tests)
+        ////**NON OPTIMAL** Skybox rendering routine
+        //glDepthMask(GL_FALSE); //Disables depth testing (skybox will fail all subsequent depth tests)
 
-        skyboxShader.use();
-        skyboxShader.setInt("skybox", 0);
+        //skyboxShader.use();
+        //skyboxShader.setInt("skybox", 0);
 
-        glm::mat4 view = glm::mat4(1.0);
-        glm::mat4 projection = glm::mat4(1.0);
+        //skyboxShader.setMat4("view", glm::mat4(glm::mat3(view)));
+        //skyboxShader.setMat4("projection", projection);
 
-        view = myCamera.GetViewMatrix();
-        projection = glm::perspective(glm::radians(myCamera.fov), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
+        //glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
+        //glBindVertexArray(skyboxVAO);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        skyboxShader.setMat4("view", glm::mat4(glm::mat3(view)));
-        skyboxShader.setMat4("projection", projection);
-
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
-        glBindVertexArray(skyboxVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        glDepthMask(GL_TRUE); //Reenables depth testing (the rest of the geometry is rendered normally)
-        //------------------------
+        //glDepthMask(GL_TRUE); //Reenables depth testing (the rest of the geometry is rendered normally)
+        ////----------------------------------------
 
         //Light color and position
         glm::vec3 lightPosition = glm::vec3(2.0 * glm::cos(glfwGetTime()), 2.0 * glm::sin(glfwGetTime()), 2.0);
@@ -363,6 +357,12 @@ int main()
         /*glm::vec3 color = glm::vec3(cos(glfwGetTime()), sin(glfwGetTime()), 0.5);
         mySimpleShader.setVec3("inputColor", color);*/
 
+        glm::mat4 view = glm::mat4(1.0);
+        glm::mat4 projection = glm::mat4(1.0);
+
+        view = myCamera.GetViewMatrix();
+        projection = glm::perspective(glm::radians(myCamera.fov), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
+
         mySimpleShader.setMat4("view", view);
         mySimpleShader.setMat4("projection", projection);
 
@@ -395,6 +395,24 @@ int main()
         lightBulbShader.setVec3("lightColor", lightColor);
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        //**OPTIMAL** Skybox rendering routine
+        glDepthFunc(GL_LEQUAL); //Skybox pixels pass the depth test because their depth value (1)
+                                //is "lower than or equal" to the depth value of the "empty" areas
+                                //of the depth buffer (where no geometry has been rendered)
+
+        skyboxShader.use();
+        skyboxShader.setInt("skybox", 0);
+
+        skyboxShader.setMat4("view", glm::mat4(glm::mat3(view)));
+        skyboxShader.setMat4("projection", projection);
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
+        glBindVertexArray(skyboxVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        glDepthFunc(GL_LESS); //Reset to default depth testing strategy
+        //----------------------------------------
 
         //Buffer swapping
         glfwSwapBuffers(window);

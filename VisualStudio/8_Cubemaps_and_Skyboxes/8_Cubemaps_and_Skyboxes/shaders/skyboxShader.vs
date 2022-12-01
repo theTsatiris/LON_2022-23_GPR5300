@@ -10,5 +10,11 @@ uniform mat4 projection;
 void main()
 {
     textureCoord = position;
-    gl_Position = projection * view * vec4(position, 1.0);
+    
+    //NOT OPTIMAL skybox rendering
+    //gl_Position = projection * view * vec4(position, 1.0);
+
+    //OPTIMAL skybox rendering
+    vec4 finalPosition = projection * view * vec4(position, 1.0);
+    gl_Position = finalPosition.xyww;
 }
