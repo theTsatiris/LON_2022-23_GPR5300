@@ -10,6 +10,7 @@
 #include <stb_image.h>
 
 #include <iostream>
+#include <vector>
 
 #include "Shader.h"
 #include "Camera.h"
@@ -25,6 +26,7 @@ void scrollingCallback(GLFWwindow* window, double xOffset, double yOffset);
 //Other functions
 void processKeyboardInput(GLFWwindow* window);
 unsigned int loadTexture(const char* path, bool flipVertically);
+unsigned int loadCubeMap(vector<string> faces);
 //---------------
 
 //Settings
@@ -65,7 +67,7 @@ int main()
     //-----------------------------
 
     //GLFW Window creation
-    GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "GPR5300 2022 - Graphics Lab 7", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "GPR5300 2022 - Graphics Lab 8", NULL, NULL);
     if (window == NULL)
     {
         cout << "Failed to create GLFW window!!!" << endl;
@@ -100,6 +102,7 @@ int main()
     //Shader loading and compiling
     Shader mySimpleShader("shaders/myFirstShader.vs", "shaders/lightMapsShader.fs");
     Shader lightBulbShader("shaders/myFirstShader.vs", "shaders/lightBulbShader.fs");
+    Shader skyboxShader("shaders/skyboxShader.vs", "shaders/skyboxShader.fs");
     //----------------------------
 
     //Geometry loading
@@ -148,6 +151,51 @@ int main()
 	   -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
 	};
 
+    float skyboxVertices[] = {
+        // positions          
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+
 
     glm::vec3 cubePositions[] = {
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -186,11 +234,40 @@ int main()
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
+    //Skybox VBO and VAO
+    unsigned int skyboxVAO, skyboxVBO;
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+
+    glBindVertexArray(skyboxVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), skyboxVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
     //----------------
 
     //Texture loading
     unsigned int diffuseMap = loadTexture("textures/diffuseMap.png", true);
     unsigned int specularMap = loadTexture("textures/specularMap2.png", true);
+
+    //Cubemap loading
+    vector<string> cubeFaces
+    {
+        "textures/skybox_2/0_right.png",
+        "textures/skybox_2/1_left.png",
+        "textures/skybox_2/2_top.png",
+        "textures/skybox_2/3_bottom.png",
+        "textures/skybox_2/4_front.png",
+        "textures/skybox_2/5_back.png"
+    };
+
+    unsigned int cubeMapTexture = loadCubeMap(cubeFaces);
     //---------------
 
     //MAIN RENDERING LOOP
@@ -213,6 +290,28 @@ int main()
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         //--------------------
+
+        //Skybox rendering routine
+        glDepthMask(GL_FALSE); //Disables depth testing (skybox will fail all subsequent depth tests)
+
+        skyboxShader.use();
+        skyboxShader.setInt("skybox", 0);
+
+        glm::mat4 view = glm::mat4(1.0);
+        glm::mat4 projection = glm::mat4(1.0);
+
+        view = myCamera.GetViewMatrix();
+        projection = glm::perspective(glm::radians(myCamera.fov), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
+
+        skyboxShader.setMat4("view", glm::mat4(glm::mat3(view)));
+        skyboxShader.setMat4("projection", projection);
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
+        glBindVertexArray(skyboxVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        glDepthMask(GL_TRUE); //Reenables depth testing (the rest of the geometry is rendered normally)
+        //------------------------
 
         //Light color and position
         glm::vec3 lightPosition = glm::vec3(2.0 * glm::cos(glfwGetTime()), 2.0 * glm::sin(glfwGetTime()), 2.0);
@@ -260,12 +359,7 @@ int main()
         //---------------
 
         glm::mat4 model = glm::mat4(1.0);
-        glm::mat4 view = glm::mat4(1.0);
-        glm::mat4 projection = glm::mat4(1.0);
-
-        view = myCamera.GetViewMatrix();
-        projection = glm::perspective(glm::radians(myCamera.fov), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
-
+        
         /*glm::vec3 color = glm::vec3(cos(glfwGetTime()), sin(glfwGetTime()), 0.5);
         mySimpleShader.setVec3("inputColor", color);*/
 
@@ -464,6 +558,70 @@ unsigned int loadTexture(const char* path, bool flipVertically)
         cout << "FAILED TO LOAD TEXTURE FILE " << path << "!!!" << endl;
     }
     stbi_image_free(data);
+
+    return textureID;
+}
+
+//Face order needs to be the following:
+// 0. Right face (+X)
+// 1. Left face (-X)
+// 2. Top face (+Y)
+// 3. Bottom face (-Y)
+// 4. Front face (+Z)
+// 5. Back face (-Z)
+unsigned int loadCubeMap(vector<string> faces)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    //Texture wrapping configuration
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    //Texture filtering configuration
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int width, height, numOfChannels;
+
+    stbi_set_flip_vertically_on_load(false);
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &numOfChannels, 0);
+        
+        if (data)
+        {
+            GLenum format;
+
+            if (numOfChannels == 1)
+            {
+                format = GL_RED;
+            }
+            else if (numOfChannels == 3)
+            {
+                format = GL_RGB;
+            }
+            else if (numOfChannels == 4)
+            {
+                format = GL_RGBA;
+            }
+            else
+            {
+                cout << "TEXTURE FILE " << faces[i] << " FAILED TO LOAD: INVALID CHANNEL NUMBER!!!" << endl;
+                continue;
+            }
+
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        }
+        else
+        {
+            cout << "FAILED TO LOAD TEXTURE FILE " << faces[i] << "!!!" << endl;
+        }
+
+        stbi_image_free(data);
+    }
 
     return textureID;
 }
