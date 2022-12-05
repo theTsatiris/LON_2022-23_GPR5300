@@ -103,6 +103,8 @@ int main()
     Shader mySimpleShader("shaders/myFirstShader.vs", "shaders/lightMapsShader.fs");
     Shader lightBulbShader("shaders/myFirstShader.vs", "shaders/lightBulbShader.fs");
     Shader skyboxShader("shaders/skyboxShader.vs", "shaders/skyboxShader.fs");
+    //Environment Mapping shader
+    Shader envMappingShader("shaders/myFirstShader.vs", "shaders/envMappingShader.fs");
     //----------------------------
 
     //Geometry loading
@@ -259,12 +261,12 @@ int main()
     //Cubemap loading
     vector<string> cubeFaces
     {
-        "textures/skybox_2/0_right.png",
-        "textures/skybox_2/1_left.png",
-        "textures/skybox_2/2_top.png",
-        "textures/skybox_2/3_bottom.png",
-        "textures/skybox_2/4_front.png",
-        "textures/skybox_2/5_back.png"
+        "textures/skybox_3/right.jpg",
+        "textures/skybox_3/left.jpg",
+        "textures/skybox_3/top.jpg",
+        "textures/skybox_3/bottom.jpg",
+        "textures/skybox_3/front.jpg",
+        "textures/skybox_3/back.jpg"
     };
 
     unsigned int cubeMapTexture = loadCubeMap(cubeFaces);
@@ -366,6 +368,21 @@ int main()
         mySimpleShader.setMat4("view", view);
         mySimpleShader.setMat4("projection", projection);
 
+        mySimpleShader.setInt("skybox", 0);
+
+        //Environment Mapping shader uniform initialisation
+        //envMappingShader.use();
+
+        //envMappingShader.setMat4("view", view);
+        //envMappingShader.setMat4("projection", projection);
+
+        //envMappingShader.setInt("skybox", 0);
+        //envMappingShader.setVec3("viewPosition", myCamera.position);
+
+        //envMappingShader.setFloat("extMediumIdx", 1.0); // refr idx for vacuum
+        //envMappingShader.setFloat("entMediumIdx", 1.52);// refr idx for window glass
+        //-------------------------------------------------
+
         glBindVertexArray(VAO); //[WHAT TO DRAW]
 
         for (int i = 0; i < 10; i++)
@@ -375,8 +392,18 @@ int main()
             model = glm::translate(model, cubePositions[i]);
             model = glm::rotate(model, glm::radians(20.0f * i) + rotationAngle, glm::vec3(0.3f, 0.7f, 0.5f));
             //model = glm::scale(model, glm::vec3(0.2 * i + 0.2, 0.2 * i + 0.2, 0.2 * i + 0.2));
+            
             mySimpleShader.setMat4("model", model);
-
+            /*if (i % 2 == 0)
+            {
+                envMappingShader.use();
+                envMappingShader.setMat4("model", model);
+            }
+            else
+            {
+                mySimpleShader.use();
+                mySimpleShader.setMat4("model", model);
+            }*/
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
         //------------------

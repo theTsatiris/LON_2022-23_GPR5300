@@ -33,6 +33,18 @@ uniform LMapMaterial mapMaterial;
 uniform bool useBlinnPhong;
 uniform bool useMaterial;
 
+uniform samplerCube skybox;
+
+vec3 reflection()
+{
+    vec3 viewDirection = normalize(FragPosition - viewPosition);
+    vec3 normal = normalize(Normal);
+
+    vec3 reflectionDir = reflect(viewDirection, normal);
+
+    return texture(skybox, reflectionDir).rgb;
+}
+
 void main()
 {
 	vec3 surfaceColor;
@@ -84,6 +96,6 @@ void main()
 		specular = surfaceColor * surfaceSpecular * lightColor * pow(max(dot(viewDirection, reflectionDir), 0.0), surfaceShininess);
 	}
 	
-	vec3 result = ambient + diffuse + specular;
+	vec3 result = ambient + diffuse + (specular * reflection());
 	FragColor = vec4(result, 1.0);
 }
