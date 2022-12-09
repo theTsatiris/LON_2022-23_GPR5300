@@ -7,13 +7,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <stb_image.h>
-
 #include <iostream>
 #include <vector>
 
 #include "Shader.h"
 #include "Camera.h"
+#include "Model.h"
 
 using namespace std;
 
@@ -100,14 +99,15 @@ int main()
     //--------------------------------
 
     //Shader loading and compiling
-    Shader mySimpleShader("shaders/myFirstShader.vs", "shaders/lightMapsShader.fs");
+    //Shader mySimpleShader("shaders/myFirstShader.vs", "shaders/lightMapsShader.fs");
     Shader lightBulbShader("shaders/myFirstShader.vs", "shaders/lightBulbShader.fs");
+    Shader modelShader("shaders/myFirstShader.vs", "shaders/modelPhongShader.fs");
     Shader skyboxShader("shaders/skyboxShader.vs", "shaders/skyboxShader.fs");
     //Environment Mapping shader
-    Shader envMappingShader("shaders/myFirstShader.vs", "shaders/envMappingShader.fs");
+    //Shader envMappingShader("shaders/myFirstShader.vs", "shaders/envMappingShader.fs");
     //----------------------------
 
-    //Geometry loading
+    //SIMPLE geometry loading
     float vertices[] = {
 		// positions         // normals           // texture
 	   -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
@@ -254,9 +254,14 @@ int main()
     glBindVertexArray(0);
     //----------------
 
+    //Complex model loading
+    Model myModel1("models/nanosuit/nanosuit.obj");
+    Model myModel2("models/backpack/backpack.obj");
+    //---------------------
+
     //Texture loading
-    unsigned int diffuseMap = loadTexture("textures/diffuseMap.png", true);
-    unsigned int specularMap = loadTexture("textures/specularMap2.png", true);
+    // ...
+    //---------------
 
     //Cubemap loading
     vector<string> cubeFaces
@@ -315,44 +320,29 @@ int main()
         //------------------------
 
         //Geometry rendering
-        mySimpleShader.use(); //Tell opengl which shader to use for rendering [HOW TO DRAW]
+        modelShader.use(); //Tell opengl which shader to use for rendering [HOW TO DRAW]
 
         ////Initialise texture sampler uniform
         //mySimpleShader.setInt("textureObject1", 0);
         //mySimpleShader.setInt("textureObject2", 1);
 
         //Set material properties
-        mySimpleShader.setBool("useMaterial", useMaterial);
-        if(useMaterial)
-        { 
-            mySimpleShader.setVec3("surfaceMaterial.color", glm::vec3(1.0f));
-            mySimpleShader.setVec3("surfaceMaterial.ambient", glm::vec3(0.0215, 0.1745, 0.0215));
-            mySimpleShader.setVec3("surfaceMaterial.diffuse", glm::vec3(0.07568, 0.61424, 0.07568));
-            mySimpleShader.setVec3("surfaceMaterial.specular", glm::vec3(0.633, 0.727811 ,0.633));
-            mySimpleShader.setFloat("surfaceMaterial.shininess", 0.6 * 128);
-        }
-        else//use light maps
-        {
-            mySimpleShader.setVec3("mapMaterial.ambient", glm::vec3(0.2f));
-            mySimpleShader.setInt("mapMaterial.diffuse", 0);
-            mySimpleShader.setInt("mapMaterial.specular", 1);
-            mySimpleShader.setFloat("mapMaterial.shininess", shininess);
-        }
+        modelShader.setVec3("ambientCoefficient", glm::vec3(0.2f));
+        modelShader.setFloat("shininess", shininess);
+        
 
         //Toggle Blinn-Phong
-        mySimpleShader.setBool("useBlinnPhong", useBlinnPhong);
+        modelShader.setBool("useBlinnPhong", useBlinnPhong);
 
         //Initialise Phong model parameters
-        mySimpleShader.setVec3("lightPosition", lightPosition);
-        mySimpleShader.setVec3("lightColor", lightColor);
-        mySimpleShader.setVec3("viewPosition", myCamera.position);
+        modelShader.setVec3("lightPosition", lightPosition);
+        modelShader.setVec3("lightColor", lightColor);
+        modelShader.setVec3("viewPosition", myCamera.position);
 
         //Texture binding
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, diffuseMap);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, specularMap);
+        // HANDLED BY ASSIMP PIPELINE
         //---------------
+        modelShader.setInt("skybox", 0);
 
         glm::mat4 model = glm::mat4(1.0);
         
@@ -365,10 +355,10 @@ int main()
         view = myCamera.GetViewMatrix();
         projection = glm::perspective(glm::radians(myCamera.fov), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
 
-        mySimpleShader.setMat4("view", view);
-        mySimpleShader.setMat4("projection", projection);
+        modelShader.setMat4("view", view);
+        modelShader.setMat4("projection", projection);
 
-        mySimpleShader.setInt("skybox", 0);
+        //modelShader.setInt("skybox", 0);
 
         //Environment Mapping shader uniform initialisation
         //envMappingShader.use();
@@ -383,29 +373,24 @@ int main()
         //envMappingShader.setFloat("entMediumIdx", 1.52);// refr idx for window glass
         //-------------------------------------------------
 
-        glBindVertexArray(VAO); //[WHAT TO DRAW]
+        //glBindVertexArray(VAO); //[WHAT TO DRAW]
+        //BINDING HANDLED BY ASSIMP
 
-        for (int i = 0; i < 10; i++)
-        {
-            //differently calculated model matrix per cube
-            model = glm::mat4(1.0); //clear the model transform for evert cube
-            model = glm::translate(model, cubePositions[i]);
-            model = glm::rotate(model, glm::radians(20.0f * i) + rotationAngle, glm::vec3(0.3f, 0.7f, 0.5f));
-            //model = glm::scale(model, glm::vec3(0.2 * i + 0.2, 0.2 * i + 0.2, 0.2 * i + 0.2));
-            
-            mySimpleShader.setMat4("model", model);
-            /*if (i % 2 == 0)
-            {
-                envMappingShader.use();
-                envMappingShader.setMat4("model", model);
-            }
-            else
-            {
-                mySimpleShader.use();
-                mySimpleShader.setMat4("model", model);
-            }*/
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+        model = glm::translate(model, glm::vec3(1.0f, -0.5f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.05f));
+
+        modelShader.setMat4("model", model);
+
+        myModel1.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.2f));
+
+        modelShader.setMat4("model", model);
+
+        myModel2.Draw(modelShader);
+        
         //------------------
 
         lightBulbShader.use();
@@ -420,6 +405,8 @@ int main()
         lightBulbShader.setMat4("model", model);
 
         lightBulbShader.setVec3("lightColor", lightColor);
+
+        glBindVertexArray(VAO);
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
