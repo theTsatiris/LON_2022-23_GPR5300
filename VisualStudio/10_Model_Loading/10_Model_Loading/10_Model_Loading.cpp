@@ -41,7 +41,6 @@ float lastFrameTime = 0.0f;
 int frameCounter = 0;
 
 float movementSpeed = 1.0f;
-float rotationAngle = 0.0f;
 
 float lastX = 0.0f;
 float lastY = 0.0f;
@@ -49,7 +48,8 @@ bool isFirstFrame = true;
 
 float shininess = 32.0f;
 bool useBlinnPhong = true;
-bool useMaterial = false;
+float specularModifier = 0.0f;
+
 int modelIdx = 0;
 int modelCount;
 //------------------------
@@ -103,7 +103,7 @@ int main()
     //Shader loading and compiling
     //Shader mySimpleShader("shaders/myFirstShader.vs", "shaders/lightMapsShader.fs");
     Shader lightBulbShader("shaders/myFirstShader.vs", "shaders/lightBulbShader.fs");
-    Shader modelShader("shaders/myFirstShader.vs", "shaders/modelPhongShader.fs");
+    Shader modelShader("shaders/myFirstShader.vs", "shaders/modelPhongShader2.fs");
     Shader skyboxShader("shaders/skyboxShader.vs", "shaders/skyboxShader.fs");
     //Environment Mapping shader
     //Shader envMappingShader("shaders/myFirstShader.vs", "shaders/envMappingShader.fs");
@@ -265,14 +265,16 @@ int main()
         "models/backpack/backpack.obj",
         "models/pony-cartoon/source/Pony_cartoon.obj",
         "models/nanosuit/nanosuit.obj",
-        "models/aircraft/E 45 Aircraft_obj.obj"
+        "models/aircraft/E 45 Aircraft_obj.obj",
+        "models/tower/Medieval_tower_High.obj"
     };
 
     vector<glm::vec3> modelScaleFactors{
         glm::vec3(0.2f),
         glm::vec3(0.002f),
         glm::vec3(0.1f),
-        glm::vec3(0.2f)
+        glm::vec3(0.2f),
+        glm::vec3(0.1f)
     };
 
     vector<Model> loadedModels;
@@ -357,7 +359,7 @@ int main()
         //Set material properties
         modelShader.setVec3("ambientCoefficient", glm::vec3(0.2f));
         modelShader.setFloat("shininess", shininess);
-        
+        modelShader.setVec3("specularModifier", glm::vec3(specularModifier));
 
         //Toggle Blinn-Phong
         modelShader.setBool("useBlinnPhong", useBlinnPhong);
@@ -406,7 +408,7 @@ int main()
 
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
         model = glm::scale(model, modelScaleFactors[modelIdx]);
-        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
+        model = glm::rotate(model, (float)glfwGetTime() * 0.5f, glm::vec3(0.0f, 1.0f, 0.0f));
 
         modelShader.setMat4("model", model);
 
@@ -502,10 +504,18 @@ void processKeyboardInput(GLFWwindow* window)
         myCamera.ProcessKeyboard(DOWN, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-        rotationAngle -= movementSpeed * deltaTime;
+    {
+        specularModifier -= deltaTime;
+        if (specularModifier < 0.0f)
+            specularModifier = 0.0f;
+        cout << specularModifier << endl;
+    }
 
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        rotationAngle += movementSpeed * deltaTime;
+    { 
+        specularModifier += deltaTime;
+        cout << specularModifier << endl;
+    }
 
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
     {
