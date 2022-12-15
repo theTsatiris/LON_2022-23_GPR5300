@@ -50,6 +50,8 @@ bool isFirstFrame = true;
 float shininess = 32.0f;
 bool useBlinnPhong = true;
 bool useMaterial = false;
+int modelIdx = 0;
+int modelCount;
 //------------------------
 
 //Camera declaration
@@ -255,8 +257,33 @@ int main()
     //----------------
 
     //Complex model loading
-    Model myModel1("models/nanosuit/nanosuit.obj");
+    /*Model myModel1("models/pony-cartoon/source/Pony_cartoon.obj");
     Model myModel2("models/backpack/backpack.obj");
+    Model myModel3("models/backpack/backpack.obj");*/
+
+    vector<string> modelPaths{
+        "models/backpack/backpack.obj",
+        "models/pony-cartoon/source/Pony_cartoon.obj",
+        "models/nanosuit/nanosuit.obj",
+        "models/aircraft/E 45 Aircraft_obj.obj"
+    };
+
+    vector<glm::vec3> modelScaleFactors{
+        glm::vec3(0.2f),
+        glm::vec3(0.002f),
+        glm::vec3(0.1f),
+        glm::vec3(0.2f)
+    };
+
+    vector<Model> loadedModels;
+    for (int i = 0; i < modelPaths.size(); i++)
+    {
+        Model tmp(modelPaths[i]);
+        loadedModels.push_back(tmp);
+    }
+
+    modelCount = loadedModels.size();
+
     //---------------------
 
     //Texture loading
@@ -315,7 +342,8 @@ int main()
         ////----------------------------------------
 
         //Light color and position
-        glm::vec3 lightPosition = glm::vec3(2.0 * glm::cos(glfwGetTime()), 2.0 * glm::sin(glfwGetTime()), 2.0);
+        //glm::vec3 lightPosition = glm::vec3(50.0 * glm::cos(glfwGetTime()), 50.0 * glm::sin(glfwGetTime()), 2.0);
+        glm::vec3 lightPosition = glm::vec3(-10.0, 8.0, -20.0);
         glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
         //------------------------
 
@@ -376,20 +404,21 @@ int main()
         //glBindVertexArray(VAO); //[WHAT TO DRAW]
         //BINDING HANDLED BY ASSIMP
 
-        model = glm::translate(model, glm::vec3(1.0f, -0.5f, 0.0f));
-        model = glm::scale(model, glm::vec3(0.05f));
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::scale(model, modelScaleFactors[modelIdx]);
+        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
 
         modelShader.setMat4("model", model);
 
-        myModel1.Draw(modelShader);
+        loadedModels[modelIdx].Draw(modelShader);
 
-        model = glm::mat4(1.0f);
+        /*model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(0.2f));
 
         modelShader.setMat4("model", model);
 
-        myModel2.Draw(modelShader);
+        myModel2.Draw(modelShader);*/
         
         //------------------
 
@@ -503,7 +532,10 @@ void processKeyboardInput(GLFWwindow* window)
     {
         if (frameCounter >= 1 / deltaTime)
         {
-            useMaterial = !useMaterial;
+            modelIdx++;
+            if (modelIdx == modelCount)
+                modelIdx = 0;
+
             frameCounter = 0;
         }
     }
